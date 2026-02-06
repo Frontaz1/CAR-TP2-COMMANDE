@@ -44,6 +44,12 @@
     </tbody>
 </table>
 
+
+<form th:action="@{/messages}" method="post">
+    <input type="hidden" name="commandeId" th:value="${commande.id}" />
+    <button type="submit">Valider la commande (Envoyer Kafka)</button>
+</form>
+
 <a th:href="@{/store/commande/print(commandeId=${commande.id})}">
     <button type="button">Imprimer la commande</button>
 </a>

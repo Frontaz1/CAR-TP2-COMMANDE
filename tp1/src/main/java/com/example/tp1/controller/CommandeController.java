@@ -6,11 +6,13 @@ import com.example.tp1.data.Commande;
 import com.example.tp1.data.Ligne;
 import com.example.tp1.service.ClientService;
 import com.example.tp1.service.CommandeService;
+import com.example.tp1.service.KafkaProducer;
 import com.example.tp1.service.LigneService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -25,10 +27,14 @@ public class CommandeController {
     private LigneService ligneService;
 
     private ClientService clientService;
-    public CommandeController(CommandeService commandeService, LigneService ligneService,ClientService clientService) {
+
+    private final KafkaProducer kafkaProducer;
+
+    public CommandeController(CommandeService commandeService, LigneService ligneService, ClientService clientService, KafkaProducer kafkaProducer) {
         this.commandeService = commandeService;
         this.ligneService = ligneService;
         this.clientService = clientService;
+        this.kafkaProducer = kafkaProducer;
     }
 
     @GetMapping("/store/commande")
@@ -49,6 +55,19 @@ public class CommandeController {
         commandeService.createCommande(titre,client);
         return new RedirectView("/store/commande");
     }
+
+    @PostMapping("/messages")
+    public RedirectView produceMessage(@RequestParam Long commandeId) {
+        Commande commande = commandeService.getCommandeById(commandeId);
+        List<Ligne> lignes = commande.getLignes();
+        String message = "";
+        for(Ligne ligne : lignes){
+            message=ligne.getLibelle()+" "+ligne.getQuantite();
+            kafkaProducer.produce(message);
+        }
+        return new RedirectView("/store/commande");
+    }
+
 
     @GetMapping("/store/commande/detail")
     public ModelAndView detailCommande(@RequestParam Long commandeId, HttpSession session) {
